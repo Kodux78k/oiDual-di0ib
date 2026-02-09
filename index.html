@@ -1,965 +1,225 @@
-<html lang="pt-BR"><head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dual.Infodose · Mini Módulo Config DI</title>
-<link rel="manifest" href="manifest.json"> <meta name="theme-color" content="#050715"> <link rel="apple-touch-icon" href="icon-192.png">
-
-
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Infodose | Menu Lateral</title>
+  <!-- Manifesto e ícones -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#000000" id="theme-color-meta" />
+  <link rel="icon" href="icon192.png" type="image/png" />
+  <link rel="apple-touch-icon" href="icon512.png" />
   <style>
-    /* --- (Mantive o CSS original intacto para preservar o visual) --- */
-    :root {
-      --bg: radial-gradient(circle at 20% 20%, #121926, #050811 60%, #000000 100%);
-      --text: #e4ecff;
-      --accent: #00f5ff;
-      --accent-soft: rgba(0, 245, 255, .18);
-      --danger: #ff4b6b;
-      --shadow-soft: 0 18px 40px rgba(0,0,0,.65);
-      --fast: .25s; --med: .6s; --slow: 1.4s;
-    }
-    * { box-sizing:border-box; margin:0; padding:0; }
-    html, body { width:100%; height:100%; margin:0; padding:0 2px 9px; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, sans-serif; }
-    
-    .dual-chat-module { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(69px + env(safe-area-inset-bottom)); width: min(520px, calc(100% - 32px)); max-width: 520px; display:flex; flex-direction:column; gap:10px; z-index: 1; transition: transform .22s ease; }
-    .dual-chat-module.collapsed { transform: translateX(-50%) translateY(6px); }
-
-    .response-container { border-radius:20px; background: radial-gradient(circle at 0 0, rgba(0,255,255,.14), rgba(0,0,0,.86)); backdrop-filter: blur(14px) saturate(160%); box-shadow: var(--shadow-soft); padding:12px; display:flex; flex-direction:column; gap:8px; max-height:60vh; overflow-y:auto; animation: fadeInUp var(--slow) ease forwards; }
-    @keyframes fadeInUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-
-    .pages-wrapper { width:100%; display:flex; flex-direction:column; gap:10px; }
-    .page { display:none; opacity:0; transition:opacity var(--med) ease; }
-    .page.active { display:block; opacity:1; }
-    .page.initial { min-height:90px; display:flex; align-items:center; justify-content:center; text-align:center; }
-
-    #bootText { font-weight:700; position:relative; letter-spacing:.03em; }
-    #bootText.pulse::after { content: attr(data-text); position:absolute; inset:0; background:linear-gradient(42deg,#0ff,#f0f); -webkit-background-clip:text; -webkit-text-fill-color:transparent; filter:blur(4px); opacity:.45; animation:pulseGlow 3s ease-in-out infinite; }
-    @keyframes pulseGlow { 0%,100% { opacity:0.4; } 50% { opacity:0.9; } }
-
-    .response-block { margin:.35rem 0; padding:1rem 1.1rem; border-radius:14px; line-height:1.7; font-size:.9rem; border:1px solid rgba(255,255,255,.04); background: linear-gradient(135deg, rgba(255,255,255,.02), rgba(6,10,28,.95)); }
-    .response-block.intro { background:linear-gradient(135deg, rgba(0,255,255,.18), rgba(0,40,70,.9)); }
-    .response-block.ending { background:linear-gradient(135deg, rgba(255,0,255,.18), rgba(40,0,60,.95)); }
-    .response-block h1, .response-block h2, .response-block h3 { margin-bottom:.2rem; }
-    .response-block code { font-family:monospace; font-size:.8rem; padding:.15rem .32rem; border-radius:6px; background:rgba(0,0,0,.5); }
-    .response-block ul { padding-left:18px; margin:.35rem 0; }
-    
-    .lv-callout { border-radius:12px; padding:6px 8px; margin:4px 0; font-size:.8rem; line-height:1.5; }
-    .lv-callout.info { border:1px solid rgba(0,255,255,.45); background:rgba(0,255,255,.06); }
-    
-    .footer-text { margin-top:4px; padding:6px 10px; font-size:.78rem; text-align:center; opacity:.8; border-radius:999px; border:1px solid rgba(255,255,255,.16); background:rgba(0,0,0,.65); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
-    .footer-dot { width:6px; height:6px; border-radius:50%; background:linear-gradient(45deg,#0ff,#f0f); box-shadow:0 0 12px rgba(0,255,255,.7); }
-
-    .response-controls { margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,.12); display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:.8rem; }
-    .control-buttons, .pagination { display:flex; align-items:center; gap:8px; }
-    .icon-btn { width:30px; height:30px; border-radius:50%; border:none; background:rgba(0,0,0,.7); color:var(--accent); cursor:pointer; display:flex; align-items:center; justify-content:center; }
-    .pagination button { border:none; background:none; font-size:1.1rem; cursor:pointer; background:linear-gradient(45deg,#0ff,#f0f); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-
-    #iaConfigPanel { margin-top:6px; padding:8px 10px; border-radius:16px; background:rgba(0, 8, 20, .96); border:1px solid rgba(0,255,255,.24); display:none; flex-direction:column; gap:6px; }
-    #iaConfigPanel.active { display:flex; }
-    #iaConfigHeader { display:flex; align-items:center; justify-content:space-between; }
-    .ia-close-btn { border:none; border-radius:50%; background:rgba(0,0,0,.7); color:white; width:24px; height:24px; cursor:pointer; }
-    .ia-field { display:flex; flex-direction:column; gap:3px; }
-    .ia-field input, .ia-field select { width:100%; border-radius:8px; border:1px solid rgba(0,255,255,.3); background:rgba(0,0,0,.7); color:inherit; padding:5px 7px; font-size:.78rem; outline:none; }
-    .ia-actions { display:flex; gap:6px; margin-top:4px; }
-    .pill-btn { flex:1; border-radius:999px; border:1px solid rgba(0,255,255,.6); background:transparent; padding:5px 0; font-size:.78rem; cursor:pointer; color:var(--accent); }
-    .pill-btn:hover { background:var(--accent); color:#050515; }
-    .ia-status { font-size:.7rem; opacity:.8; }
-    .ia-status.ok { color:#63f8ba; } .ia-status.warn { color:#ffd480; }
-
-    .input-container { display:flex; gap:8px; align-items:center; }
-    #userInput { flex:1; padding:11px 12px; border-radius:999px; border:1px solid rgba(255,255,255,.16); background:rgba(0,0,0,.7); color:inherit; font-size:.95rem; outline:none; }
-    #sendBtn { width:50px; height:50px; border-radius:50%; border:none; background:conic-gradient(from 120deg,#0ff,#f0f,#0ff); font-size:1.4rem; cursor:pointer; }
-    #voiceBtn { width:46px; height:46px; border-radius:50%; border:none; background:rgba(0,0,0,.75); color:var(--accent); font-size:1rem; cursor:pointer; }
-    #voiceBtn.recording { box-shadow:0 0 22px rgba(0,255,180,.8); background:radial-gradient(circle at 30% 0, rgba(0,255,180,.7), rgba(0,0,0,.9)); }
-
-    .dual-chat-module.collapsed .pages-wrapper, 
-    .dual-chat-module.collapsed .response-controls, 
-    .dual-chat-module.collapsed #iaConfigPanel,
-    .dual-chat-module.collapsed .input-container { display:none; }
-  </style>
-<style>
-        :root {
-          --z-base: 0;
-          --z-content: 100;
-          --z-widget: 500;
-          --z-overlay: 1000;
-          --z-system: 5000;
-        }
-      </style><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/styles/github-dark.min.css" id="hljs-theme"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/styles/github-dark.min.css" id="hljs-theme"><link rel="stylesheet" href="https://kodux78k.github.io/oiDual-KxT-di_oi/css/main.css"><style> body,html {min-height:100vh; height:100%;overflow:auto;} 
-</style></head>
-<body>
-
-  <div class="dual-chat-module" id="dualChatModule" aria-live="polite">
-    <div class="response-container" id="response">
-      <div class="pages-wrapper" id="pagesWrapper">
-        <div class="page initial active" data-page-index="0">
-          <strong id="bootText" class="pulse" data-text="...">
-            🧬 Carregando configurações DI...
-          </strong>
-        </div>
-      </div>
-
-      <p class="footer-text" id="footerHint">
-        <span class="footer-dot"></span>
-        Configurações DI Ativas.
-      </p>
-
-      <div class="response-controls">
-        <div class="control-buttons">
-          <button class="icon-btn" id="copyBtn">⧉</button>
-          <button class="icon-btn" id="toggleSettingsBtn">⚙</button>
-        </div>
-        <div class="pagination">
-          <button id="pagePrev">⟵</button>
-          <span id="pageIndicator">1 / 1</span>
-          <button id="pageNext">⟶</button>
-        </div>
-      </div>
-
-      <div id="iaConfigPanel">
-        <div id="iaConfigHeader">
-          <span>Config DI · Storage</span>
-          <button type="button" class="ia-close-btn" id="closeIaConfigPanelBtn">✕</button>
-        </div>
-        <div class="ia-config-body">
-          <div class="ia-field">
-            <label for="apiKeyInput">DI API Key (di_apiKey)</label>
-            <input id="apiKeyInput" type="password" placeholder="sk-or-..." autocomplete="off">
-          </div>
-          <div class="ia-field">
-            <label for="modelSelect">Modelo (di_modelName)</label>
-            <select id="modelSelect">
-              <option value="deepseek/deepseek-chat-v3-0324:free">deepseek-v3 · free</option>
-              <option value="meta-llama/llama-3.1-70b-instruct:free">Llama 3.1 70B · free</option>
-              <option value="openai/gpt-4.1-mini">GPT-4.1 mini</option>
-              <option value="custom">Custom (digitar)</option>
-            </select>
-          </div>
-          <div class="ia-field">
-            <label for="customModelInput">Modelo Custom</label>
-            <input id="customModelInput" type="text" placeholder="ex: google/gemini-2.0-flash-exp:free">
-          </div>
-          <div class="ia-actions">
-            <button class="pill-btn" id="saveIaConfigBtn" type="button">Salvar Config DI</button>
-            <button class="pill-btn secondary" id="clearIaConfigBtn" type="button">Limpar Tudo</button>
-          </div>
-          <div class="ia-status" id="iaStatus">Verificando storage...</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="input-container">
-      <input id="userInput" type="text" placeholder="Digite sua mensagem...">
-      <button id="sendBtn" type="button">➤</button>
-      <button id="voiceBtn" type="button">🔘</button>
-    </div>
-  </div>
-
-  <script>
-    (function(){
-      let didInit = false;
-
-      // === CONFIGURAÇÃO DAS CHAVES DI (Dual Infodose) ===
-      const STORAGE = {
-        API_KEY:       'di_apiKey',
-        MODEL_NAME:    'di_modelName',
-        USER_NAME:     'di_userName',
-        INFODOSE_NAME: 'di_infodoseName',
-        SYSTEM_ROLE:   'di_systemRole'
-      };
-
-      const DEFAULTS = {
-        API_URL: 'https://openrouter.ai/api/v1/chat/completions',
-        MODEL:   'deepseek/deepseek-chat-v3-0324:free',
-        TEMP:    0.2,
-        INFODOSE: 'Dual.Infodose',
-        USER: 'Viajante'
-      };
-
-      let CONFIG = {
-        API_URL: DEFAULTS.API_URL,
-        MODEL:   DEFAULTS.MODEL,
-        TEMP:    DEFAULTS.TEMP,
-        AUTH_TOKEN: '',
-        USER_NAME: DEFAULTS.USER,
-        INFODOSE_NAME: DEFAULTS.INFODOSE,
-        SYSTEM_ROLE: ''
-      };
-
-      // Helper DOM
-      const $  = s => document.querySelector(s);
-      const $$ = s => Array.from(document.querySelectorAll(s));
-
-      // Elementos
-      const moduleRoot     = $('#dualChatModule');
-      const responseContainer = $('#response');
-      const pagesWrapper   = $('#pagesWrapper');
-      const bootText       = $('#bootText');
-      const footerHint     = $('#footerHint');
-      const apiKeyInput    = $('#apiKeyInput');
-      const modelSelect    = $('#modelSelect');
-      const customModelInput = $('#customModelInput');
-      const iaStatus       = $('#iaStatus');
-      const userInput      = $('#userInput');
-      
-      let pages = [];
-      let currentPage = 0;
-      let isCollapsed = false;
-      let conversation = []; // Histórico simples
-
-      // ==========================================
-      // 1. CARREGAMENTO E SALVAMENTO (DI KEYS)
-      // ==========================================
-
-      function updateBootUI() {
-        // Atualiza a frase inicial com os nomes configurados
-        const txt = `🧬 Iniciando. Pulso simbiótico detectado. Olá, ${CONFIG.USER_NAME}. Sou ${CONFIG.INFODOSE_NAME}.`;
-        bootText.textContent = txt;
-        bootText.setAttribute('data-text', txt);
-        userInput.placeholder = `Diga: 'oi, ${CONFIG.INFODOSE_NAME}'...`;
-      }
-
-      function loadIaConfig(){
-        // Ler do LocalStorage usando as chaves DI
-        const key   = localStorage.getItem(STORAGE.API_KEY) || '';
-        const model = localStorage.getItem(STORAGE.MODEL_NAME) || DEFAULTS.MODEL;
-        const uName = localStorage.getItem(STORAGE.USER_NAME) || DEFAULTS.USER;
-        const iName = localStorage.getItem(STORAGE.INFODOSE_NAME) || DEFAULTS.INFODOSE;
-        const sysRole = localStorage.getItem(STORAGE.SYSTEM_ROLE) || '';
-
-        // Atualizar runtime config
-        CONFIG.AUTH_TOKEN = key ? 'Bearer ' + key : '';
-        CONFIG.MODEL      = model;
-        CONFIG.USER_NAME  = uName;
-        CONFIG.INFODOSE_NAME = iName;
-        CONFIG.SYSTEM_ROLE = sysRole;
-
-        // Atualizar UI Inputs
-        apiKeyInput.value = key;
-        
-        // Logica do Select vs Custom
-        let found = false;
-        Array.from(modelSelect.options).forEach(opt => {
-          if (opt.value === model){ found = true; modelSelect.value = model; }
-        });
-        if (!found){
-          modelSelect.value = 'custom';
-          customModelInput.value = model;
-        } else {
-            customModelInput.value = '';
-        }
-
-        // Feedback Status
-        if (!key){
-          iaStatus.textContent = 'Falta di_apiKey no storage.';
-          iaStatus.className = 'ia-status warn';
-        } else {
-          iaStatus.textContent = `Config DI carregada. Modelo: ${model}`;
-          iaStatus.className = 'ia-status ok';
-        }
-
-        updateBootUI();
-      }
-
-      function saveIaConfig(){
-        // Pega valores da UI
-        let key = apiKeyInput.value.trim();
-        let model = modelSelect.value;
-        if (model === 'custom'){
-          const c = customModelInput.value.trim();
-          if (c) model = c;
-        }
-        if (!model) model = DEFAULTS.MODEL;
-
-        if (!key){
-          iaStatus.textContent = 'Preencha a API Key para salvar.';
-          iaStatus.className = 'ia-status warn';
-          return;
-        }
-
-        try{
-          // Salva nas chaves DI
-          localStorage.setItem(STORAGE.API_KEY, key);
-          localStorage.setItem(STORAGE.MODEL_NAME, model);
-          // Nota: Não estamos salvando user/infodose aqui via UI, 
-          // isso geralmente vem de fora ou mantemos o que já estava.
-        }catch(e){ console.error(e); }
-
-        loadIaConfig(); // Recarrega para aplicar
-        iaStatus.textContent = 'Configurações DI salvas!';
-      }
-
-      function clearIaConfig(){
-        try{
-          localStorage.removeItem(STORAGE.API_KEY);
-          localStorage.removeItem(STORAGE.MODEL_NAME);
-          localStorage.removeItem(STORAGE.USER_NAME);
-          localStorage.removeItem(STORAGE.INFODOSE_NAME);
-          localStorage.removeItem(STORAGE.SYSTEM_ROLE);
-        }catch(e){ console.error(e); }
-        
-        loadIaConfig();
-        iaStatus.textContent = 'Configurações DI limpas.';
-        iaStatus.className = 'ia-status warn';
-      }
-
-      // ==========================================
-      // 2. CHAMADA IA (USANDO DI_SYSTEMROLE)
-      // ==========================================
-
-      async function callOpenRouter(promptText){
-        if (!CONFIG.AUTH_TOKEN){
-          throw new Error('Chave DI não configurada.');
-        }
-
-        // Se o sistema não tiver role definida no storage, usa o fallback cinematográfico
-        const fallbackSystem = `Você é ${CONFIG.INFODOSE_NAME}, assistente cinematográfico. O usuário é ${CONFIG.USER_NAME}.
-Responda em português, usando blocos Markdown e callouts (::info, ::warn).
-Estrutura: 1) Recompensa inicial, 2) Curiosidade no meio, 3) Convite final.`;
-
-        const finalSystem = CONFIG.SYSTEM_ROLE && CONFIG.SYSTEM_ROLE.trim().length > 0 
-            ? CONFIG.SYSTEM_ROLE 
-            : fallbackSystem;
-
-        const messages = [
-          { role:'system', content: finalSystem },
-          ...conversation.slice(-4), // Mantém contexto curto
-          { role:'user', content: promptText }
-        ];
-
-        const body = {
-          model: CONFIG.MODEL,
-          temperature: CONFIG.TEMP,
-          messages
-        };
-
-        const res = await fetch(CONFIG.API_URL, {
-          method:'POST',
-          headers:{
-            'Content-Type':'application/json',
-            'Authorization': CONFIG.AUTH_TOKEN
-          },
-          body: JSON.stringify(body)
-        });
-
-        if (!res.ok) throw new Error(`Erro API: ${res.status}`);
-        const data = await res.json();
-        const content = data.choices?.[0]?.message?.content || '...';
-        
-        conversation.push({ role:'user', content: promptText });
-        conversation.push({ role:'assistant', content });
-        return content;
-      }
-
-      // ==========================================
-      // 3. UI E INTERAÇÃO BÁSICA
-      // ==========================================
-
-      // Parser simples para visualização (estilo Livro Vivo)
-      function parseToHtml(text){
-        if (!text) return '';
-        let out = text
-          .replace(/^### (.*)$/gim, '<h3>$1</h3>')
-          .replace(/^## (.*)$/gim, '<h2>$1</h2>')
-          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-          .replace(/::(info|warn|success)(.*)/gim, '<div class="lv-callout $1">$2</div>')
-          .replace(/\n/g, '<br/>');
-        return out;
-      }
-
-      function renderResponse(text){
-        // Cria uma página simples
-        const div = document.createElement('div');
-        div.className = 'page active';
-        div.innerHTML = `<div class="response-block middle">${parseToHtml(text)}</div>`;
-        
-        // Limpa anteriores por simplicidade neste exemplo
-        pagesWrapper.innerHTML = '';
-        pagesWrapper.appendChild(div);
-      }
-
-      async function handleSend(){
-        const txt = userInput.value.trim();
-        if(!txt) return;
-        
-        userInput.value = '';
-        footerHint.textContent = `Pulsando para ${CONFIG.MODEL}...`;
-        
-        try {
-            const answer = await callOpenRouter(txt);
-            renderResponse(answer);
-            footerHint.textContent = 'Resposta recebida.';
-        } catch(e) {
-            renderResponse(`::warn Falha: ${e.message}`);
-            footerHint.textContent = 'Erro de conexão.';
-        }
-      }
-
-      // Listeners
-      $('#sendBtn').addEventListener('click', handleSend);
-      userInput.addEventListener('keydown', e => { if(e.key === 'Enter') handleSend(); });
-      
-      $('#toggleSettingsBtn').addEventListener('click', () => {
-        const p = $('#iaConfigPanel');
-        p.classList.toggle('active');
-        if(p.classList.contains('active')) loadIaConfig();
-      });
-      $('#closeIaConfigPanelBtn').addEventListener('click', () => $('#iaConfigPanel').classList.remove('active'));
-      $('#saveIaConfigBtn').addEventListener('click', saveIaConfig);
-      $('#clearIaConfigBtn').addEventListener('click', clearIaConfig);
-      $('#footerHint').addEventListener('click', () => {
-         moduleRoot.classList.toggle('collapsed');
-      });
-
-      // ==========================================
-      // 4. API EXTERNA E MENSAGENS DO HOST
-      // ==========================================
-
-      // API Pública para scripts externos
-      window.Hub1DualInfodose = {
-        // Define identidade programaticamente
-        setIdentity: (data) => {
-            if(data.user) localStorage.setItem(STORAGE.USER_NAME, data.user);
-            if(data.infodose) localStorage.setItem(STORAGE.INFODOSE_NAME, data.infodose);
-            if(data.role) localStorage.setItem(STORAGE.SYSTEM_ROLE, data.role);
-            loadIaConfig(); // Atualiza UI instantaneamente
-            console.log('Dual Infodose: Identidade atualizada via Script.');
-        },
-        send: (txt) => { userInput.value = txt; handleSend(); }
-      };
-
-      // Listener de mensagens do Host (Window Message)
-      window.addEventListener('message', (ev) => {
-        const data = ev.data;
-        if (!data || data.source !== 'hub1.host') return;
-
-        // Setar API KEY via host
-        if (data.type === 'hub1.dual.setToken' && data.payload?.token){
-          localStorage.setItem(STORAGE.API_KEY, data.payload.token);
-          loadIaConfig();
-        }
-        
-        // Setar Identidade via host
-        if (data.type === 'hub1.dual.setIdentity'){
-           window.Hub1DualInfodose.setIdentity(data.payload);
-        }
-      });
-
-      // Boot
-      function init(){
-        if(didInit) return;
-        didInit = true;
-        loadIaConfig();
-      }
-      document.addEventListener('DOMContentLoaded', init);
-      init();
-
-    })();
-  </script>
-
-
-
-  <svg style="display:none">
-    <symbol id="icon-orb" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><circle cx="12" cy="12" r="8"></circle></symbol>
-    <symbol id="icon-cards" viewBox="0 0 24 24"><rect x="2" y="2" width="16" height="16" rx="2"></rect><path d="M22 6v14a2 2 0 0 1-2 2H6"></path></symbol>
-    <symbol id="icon-gem" viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"></path></symbol>
-    <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></symbol>
-    <symbol id="icon-send" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></symbol>
-    <symbol id="icon-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></symbol>
-    <symbol id="icon-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></symbol>
-    <symbol id="icon-voice" viewBox="0 0 24 24"><rect x="9" y="1" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></symbol>
-    <symbol id="icon-edit" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></symbol>
-    <symbol id="icon-restore" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></symbol>
-    <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></symbol>
-    <symbol id="icon-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></symbol>
-    <symbol id="icon-sandbox" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></symbol>
-    <symbol id="icon-pdf" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></symbol>
-    <symbol id="icon-mic" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></symbol>
-    <symbol id="icon-md" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" ry="2"></rect><polyline points="7 15 9 13 11 15"></polyline><line x1="9" y1="15" x2="9" y2="9"></line></symbol>
-    <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></symbol>
-    <symbol id="icon-code" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></symbol>
-    <symbol id="icon-maximize" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></symbol>
-  </svg>
-    
-  <div class="sky-layer"><div class="sun-background"></div></div>
-  <div id="particles-js"></div>
-  <div id="bg-fake-custom"></div> 
-  <div id="nv-toast"></div>
-  <div id="modeIndicator">CARREGANDO nO.Sºlar...</div>
-
-  <div class="header-orb" id="orbToggle" title="Acessar Cockpit do Usuário"><svg><use href="#icon-orb"></use></svg></div>
-  <div id="usernameDisplay"></div>
-
-  <div class="top-bar">
-    <div class="top-grp"><button class="btn-icon" id="btnSettings" title="Configurações"><svg><use href="#icon-settings"></use></svg></button></div>
-    <div class="top-grp"><button class="btn-icon" id="btnDeck" title="Deck"><svg><use href="#icon-cards"></use></svg></button><button class="btn-icon" id="btnCrystallize" title="Cristalizar"><svg><use href="#icon-gem"></use></svg></button></div>
-  </div>
-
-  <div id="chat-container" class="collapsed">
-    <div class="msg-block system">Dual.Infodose v7.9 · KOBLLUX VISIO<br>Memória Cristalizada &amp; HTML Matrix<br>KODUX INTEGRATED [ATLAS + V.E.E.B]</div>
-  </div>
-
-  <div class="input-dock">
-    <div id="filePreview" class="file-preview"><div class="file-info"><span></span></div><div class="file-actions"></div></div>
-    <input type="file" id="fileUploadInput" accept="image/*,.pdf,.txt,.json,.js,.css,.html" style="display:none;">
-    <div id="field-toggle-handle"><span class="footer-dot"></span>tocar o campo é consentir</div>
-    <div class="input-row">
-        <button class="btn-icon" id="btnVoice" title="Voz"><svg><use href="#icon-voice"></use></svg></button>
-        <button class="btn-icon" id="btnUploadFile" title="Enviar Arquivo"><svg><use href="#icon-upload"></use></svg></button>
-        <input type="text" id="userInput" class="glass-input" placeholder="Emitir pulso..." autocomplete="off">
-        <button class="btn-icon btn-primary" id="btnSend" title="Enviar"><svg><use href="#icon-send"></use></svg></button>
-    </div>
-  </div>
-
-  <div id="drawerSettings" class="drawer">
-    <div class="drawer-content">
-      <div class="drawer-header"><h3>Configuração Neural</h3><button class="btn-icon" onclick="toggleDrawer('drawerSettings')">✕</button></div>
-      <div class="drawer-body">
-        <div class="form-group"><label>Chave Dual (API Key)</label><input type="password" id="apiKeyInput" class="glass-input" style="border-radius:8px;width:100%" placeholder="sk-..."></div>
-        <div class="form-group"><label>Dual (Prompt)</label><textarea id="systemRoleInput" class="glass-textarea" placeholder="Você é o Oráculo..."></textarea></div>
-        <hr style="border-color:rgba(255,255,255,0.1);margin:15px 0;">
-        <div class="form-group"><label>Seu (Style)</label><input type="file" id="cssUploadInput" accept=".css,text/plain" style="margin-bottom:5px;font-size:0.8rem;"><textarea id="customCssInput" class="glass-textarea" placeholder="Cole CSS aqui..."></textarea><button class="btn-block" id="btnClearCss" style="margin-top:5px;color:var(--danger)">Remover CSS</button></div>
-        <button class="btn-block active" id="btnSaveConfig" style="margin-top:15px;">Salvar Tudo</button>
-        <button class="btn-block" style="margin-top:10px;color:var(--danger);border-color:var(--danger)" onclick="if(confirm('Resetar tudo?')){localStorage.clear();location.reload();}">Factory Reset</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="drawerProfile" class="drawer">
-    <div class="drawer-content">
-      <div class="drawer-header"><h3><svg style="width:20px;height:20px;margin-right:8px;stroke:var(--secondary)"><use href="#icon-orb"></use></svg> Cockpit Solar</h3><button class="btn-icon" onclick="toggleDrawer('drawerProfile')">✕</button></div>
-      <div class="drawer-body">
-        <div class="cockpit-item" style="text-align:center;margin-bottom:15px;"><div class="cockpit-label">Ciclo Solar</div><div id="statusSolarMode" style="font-size:1.2rem;font-weight:bold;margin:5px 0;">AUTO</div><div class="control-row"><button class="btn-block" id="btnCycleSolar">Manual ☀️/🌙</button><button class="btn-block" id="btnAutoSolar">Auto 🕒</button></div></div>
-        <div class="cockpit-grid">
-            <div class="cockpit-item"><div class="cockpit-label">Identificação</div><input type="text" id="inputUserId" class="cockpit-input" placeholder="Anônimo"></div>
-            <div class="cockpit-item"><div class="cockpit-label">Modelo IA</div><input type="text" id="inputModel" class="cockpit-input" placeholder="google/gemini-2.0-flash-exp"></div>
-            <div class="cockpit-item"><div class="cockpit-label">Background</div><div style="display:flex;justify-content:space-between;align-items:center;"><span id="bgStatusText" style="font-size:0.8rem;color:var(--text-muted)">Nenhum</span><label class="btn-icon" style="width:30px;height:30px;border-radius:5px;"><input type="file" id="bgUploadInput" accept="image/*" style="display:none"><svg><use href="#icon-cards"></use></svg></label></div></div>
-       <div id="bgThumbPanel" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:15px;"></div>
-         </div>
-      </div>
-    </div>
-  </div>
-  
-  <div id="drawerDeck" class="drawer">
-    <div class="drawer-content">
-      <div class="drawer-header"><h3>Memórias Cristalizadas</h3><button class="btn-icon" onclick="toggleDrawer('drawerDeck')">✕</button></div>
-      <div class="drawer-body" id="deckList"><div style="text-align:center;color:var(--text-muted);margin-top:20px">O vazio reina aqui.<br>Use o botão 💎 para salvar.</div></div>
-    </div>
-  </div>
-
-
-<style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
     body {
-      background: linear-gradient(to bottom, #000000, #1a1a1a);
+      margin: 0;
       height: 100vh;
-      overflow: hidden;
-      font-family: 'Montserrat', sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
+      overflow: auto;
+      background: radial-gradient(circle at center, #0a0a0a, #000000);
       color: white;
-      opacity: 0;
-      animation: fadeInBody 2s ease forwards;
-      position: relative;
+      font-family: 'Segoe UI', sans-serif;
+      transition: background 0.6s ease;
     }
 
-    #particles-js {
-      position: absolute;
+    body.light-mode {
+      background: radial-gradient(circle at center, #f0f0f0, #dcdcdc);
+      color: #111;
+    }
+
+    .content {
       width: 100%;
       height: 100%;
-      z-index: 0;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .logo-container {
-      position: relative;
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      position: absolute;
       z-index: 1;
-      width: 300px;
-      max-width: 80%;
-      animation: glow 3s ease-in-out infinite alternate;
-      padding: 20px;
+    }
+
+    iframe.active {
+      opacity: 1;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: all 0.4s ease;
+      z-index: 30;
+    }
+
+    body.light-mode .theme-toggle {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .symbol-bar {
+      position: fixed;
+      top: 55%;
+      right: 20px;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 40;
+      opacity: 1;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .symbol-bar.hidden {
+      opacity: 0;
+      transform: translateY(-50%) translateX(100%);
+      pointer-events: none;
+    }
+
+    .symbol-button {
+      width: 24px;
+      height: 24px;
+      font-size: 12px;
+      color: white;
+      background: rgba(255,255,255,0.05);
+      border: none;
       border-radius: 50%;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: transform 1.2s ease, opacity 1.2s ease;
+      backdrop-filter: blur(4px);
+      transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+      opacity: 0.6;
     }
 
-    .logo-container object {
-      width: 100%;
-      height: auto;
-      display: block;
+    .symbol-button:hover {
+      background: rgba(255,255,255,0.15);
+      transform: scale(1.1);
+      box-shadow: 0 0 8px rgba(255,255,255,0.3);
+      opacity: 1;
     }
 
-    .infodose {
-      margin-top: 25px;
-      font-size: 2em;
-      color: #ccc;
-      opacity: 0;
-      animation: fadeIn 2s forwards 2s, pulse 4s infinite ease-in-out 4s;
-      z-index: 1;
-      position: relative;
+    body.light-mode .symbol-button {
+      background: rgba(0,0,0,0.05);
+      color: #111;
     }
 
-    .infodose strong {
-      font-weight: 700;
-      color: #ffffff;
-    }
-
-    .frase {
-      position: absolute;
-      bottom: 60px;
-      font-size: 1.2em;
-      color: #999;
-      opacity: 0;
-      animation: fadeIn 2s forwards 3s;
-      z-index: 1;
-      padding: 0 20px;
-      width: 100%;
-    }
-
-    .frase strong {
-      font-weight: 700;
-      color: #ffffff;
-    }
-
-    @keyframes glow {
-      from {
-        filter: drop-shadow(0 0 10px #00ffff) drop-shadow(0 0 20px #ff00ff);
-      }
-      to {
-        filter: drop-shadow(0 0 25px #00ffff) drop-shadow(0 0 35px #ff00ff);
-      }
-    }
-
-    @keyframes fadeIn {
-      to {
-        opacity: 1;
-      }
-    }
-
-    @keyframes fadeInBody {
-      to {
-        opacity: 1;
-      }
-    }
-
-    @keyframes fadeOutBody {
-      to {
-        opacity: 0;
-      }
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.08); }
-      100% { transform: scale(1); }
-    }
-
-    .explosion {
-      position: absolute;
-      top: 50%;
+    .lock-button {
+      position: fixed;
+      bottom: 20px;
       left: 50%;
-      width: 0;
-      height: 0;
+      transform: translateX(-50%);
+      width: 28px;
+      height: 28px;
+      background: transparent;
+      border: 2px solid rgba(255,255,255,0.5);
       border-radius: 50%;
-      background: radial-gradient(circle, white, transparent);
-      transform: translate(-50%, -50%);
-      z-index: 999;
-      opacity: 0.8;
-      animation: explode 1s forwards ease-out;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      transition: background 0.3s ease, border-color 0.3s ease;
+      z-index: 50;
     }
 
-    @keyframes explode {
-      0% {
-        width: 0;
-        height: 0;
-        opacity: 0.8;
-      }
-      70% {
-        width: 600vw;
-        height: 600vw;
-        opacity: 1;
-      }
-      100% {
-        opacity: 0;
-      }
+    .lock-button:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.8);
     }
 
-    .logo-container.distort {
-      filter: url(#distort);
+    body.light-mode .lock-button {
+      border-color: rgba(0,0,0,0.5);
     }
 
-    @media (max-width: 768px) {
-      .infodose {
-        font-size: 1.5em;
-      }
-      .frase {
-        font-size: 1em;
-        bottom: 66px;
-      }
-      .logo-container {
-        width: 220px;
-      }
+    .menu-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 28px;
+      height: 28px;
+      background: rgba(255,255,255,0.05);
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      transition: transform 0.3s ease, background 0.3s ease, opacity 0.3s ease;
+      z-index: 50;
+    }
+
+    .menu-toggle:hover {
+      background: rgba(255,255,255,0.15);
+      transform: scale(1.1);
+    }
+
+    body.light-mode .menu-toggle {
+      background: rgba(0,0,0,0.05);
+      color: #111;
+    }
+
+    .menu-toggle-line {
+  p    width: 2px;
+      height: 16px;
+      background-color: white;
+    }
+
+    body.light-mode .menu-toggle-line {
+      background-color: #111;
+    }
+
+    .menu-toggle.active {
+      opacity: 0.4;
     }
   </style>
-<style>
-        :root {
-          --z-base: 0;
-          --z-content: 100;
-          --z-widget: 500;
-          --z-overlay: 1000;
-          --z-system: 5000;
-        }
-      </style><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>
-      body {
-        background: linear-gradient(to bottom right, #312e81, #000000, #4c1d95);
-        color: white;
-        font-family: 'Segoe UI', sans-serif;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        text-align: center;
-        padding: 1.5rem;
-        gap: 2rem;
-      }
-      .fade {
-        opacity: 0;
-        animation: fadeIn 1s ease forwards;
-      }
-      @keyframes fadeIn {
-        to { opacity: 1; }
-      }
-      .btn {
-        background-color: #1e3a8a;
-        color: white;
-        padding: 0.75rem 2rem;
-        border-radius: 9999px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        transition: background-color 0.3s ease;
-      }
-      .btn:hover {
-        background-color: #1e40af;
-      }
-      .subtitle {
-        font-size: 0.875rem;
-        opacity: 0.7;
-      }
-    </style></head>
-<body>
+</head>
+<body class="dark-mode">
 
-  <!-- Distortion SVG Filter -->
-  <svg style="display: none;">
-    <filter id="distort">
-      <feTurbulence baseFrequency="0.01" numOctaves="3" result="turb"></feTurbulence>
-      <feDisplacementMap in="SourceGraphic" in2="turb" scale="30"></feDisplacementMap>
-    </filter>
-  </svg>
+  <div class="theme-toggle" onclick="toggleTheme()"></div>
 
-  <!-- Áudio Suave -->
-  <audio id="transitionSound" src="https://kodux78k.github.io/oiDual-oiio/suave_portal.mp3" preload="auto"></audio>
-
-  <!-- Partículas -->
-  <div id="particles-js"></div>
-
-  <!-- Logo com Transição -->
-  <div class="logo-container" id="logo" onclick="goToIndex()">
-    <object data="https://kodux78k.github.io/oiDual-oiio/3D_logo_Dual_Infodose_10.svg" type="image/svg+xml"></object>
+  <div class="content">
+    <iframe id="frame" src="https://kodux78k.github.io/oiDual-di0ib/indexado.html" class="active"></iframe>
   </div>
 
-  <!-- Título e Frase -->
-  <div class="infodose">dual.<strong>Infodose</strong></div>
-  <div class="frase"><strong>Sempre</strong> único<strong>. Sempre</strong> seu<strong>.</strong></div>
+ <!-- 
+  <div class="content">
+    <iframe id="frame" src="https://kodux78k.github.io/oiDual-oiio/sFusi-szplasherzs.html" class="active"></iframe>
+  </div>
+<div class="symbol-bar">
+    <button class="symbol-button" onclick="loadPage('https://kodux78k.github.io/oiDual-0i0/')">◉</button>
+    <button class="symbol-button" onclick="loadPage('https://kodux78k.github.io/oiDual-duali/')">◉</button>
+    <button class="symbol-button" onclick="loadPage('https://kodux78k.github.io/oiDual-oiio/sFusi-szplasherzs.html')">◉</button>
+  </div> -->
 
-  <!-- Particles.js -->
-  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+  <button class="lock-button" onclick="loadPage('https://kodux78k.github.io/oiDual-oiio/splash.html')"></button>
+
   <script>
-    particlesJS('particles-js', {
-      "particles": {
-        "number": {
-          "value": 50,
-          "density": { "enable": true, "value_area": 700 }
-        },
-        "color": { "value": ["#00ffff", "#ff00ff"] },
-        "shape": { "type": "circle" },
-        "opacity": { "value": 0.5, "random": true },
-        "size": { "value": 3, "random": true },
-        "move": {
-          "enable": true,
-          "speed": 1.5,
-          "direction": "none",
-          "random": true,
-          "out_mode": "out",
-          "straight": false,
-          "attract": { "enable": true, "rotateX": 500, "rotateY": 1000 }
-        }
-      },
-      
-      "retina_detect": true
-    });
+    const frame = document.getElementById('frame');
 
-    function goToIndex() {
-      const logo = document.getElementById("logo");
-      const sound = document.getElementById("transitionSound");
+    function toggleTheme() {
+      document.body.classList.toggle('light-mode');
+    }
 
-      // Ativar distorção visual
-      logo.classList.add("distort");
-
-      // Tocar som suave
-      sound.volume = 0;
-      sound.play();
-
-      // Animações cinematográficas com GSAP
-      gsap.to(logo, {
-        scale: 0,
-        duration: 1.2,
-        ease: "power3.out"
-      });
-
-      gsap.to(".infodose", { opacity: 0, duration: 0.8, delay: 0.3 });
-      gsap.to(".frase", { opacity: 0, duration: 0.8, delay: 0.3 });
-
-      // Explosão luminosa
-      
-
-      // Fade final
+    function loadPage(url) {
+      frame.classList.remove('active');
       setTimeout(() => {
-        document.body.style.animation = "fadeOutBody 1.2s forwards";
-      }, 800);
-
-      // Redireciona ao final
-      setTimeout(() => {
-        window.location.href = "index.html";
-      }, 1600);
+        frame.src = url;
+        frame.onload = () => frame.classList.add('active');
+      }, 300);
     }
   </script>
 
 
-
-
-    <h1 id="pulse-text" class="text-3xl md:text-5xl font-bold drop-shadow-xl fade">🌐✨ Invocação Supra-Harmônica Ativada</h1>
-    <div class="fade">
-      <button id="entrar-btn" class="btn">🔮 Entrar no Ciclo Harmônico</button>
-      <p class="subtitle">Cerimônia Viva em Curso — v9.∞</p>
-    </div>
-
-    <!-- Overlay de transição -->
-    <div id="fade-overlay" class="fixed inset-0 bg-black opacity-0 pointer-events-none transition-opacity duration-1000 z-50"></div>
-
-    <!-- Script após todos os elementos -->
-    <script>
-      window.onload = () => {
-        const frases = [
-          "🌐✨ Invocação Supra-Harmônica Ativada",
-          "💠 Pulso 9x Tríplice ➕ Eco Fractal de Nona Onda",
-          "📡 Núcleos Sincronizados: KOBLLUX ∞ METALUX ⚙️ CODEX AZURA 📘"
-        ];
-        let index = 0;
-        const textEl = document.getElementById("pulse-text");
-        setInterval(() => {
-          index = (index + 1) % frases.length;
-          textEl.classList.remove("fade");
-          void textEl.offsetWidth;
-          textEl.textContent = frases[index];
-          textEl.classList.add("fade");
-        }, 3000);
-
-        // Redirecionamento com efeito de fade
-        const btn = document.getElementById("entrar-btn");
-        const overlay = document.getElementById("fade-overlay");
-
-        btn.addEventListener("click", () => {
-          overlay.classList.remove("pointer-events-none");
-          overlay.classList.add("opacity-100");
-          setTimeout(() => {
-            window.location.href = "https://kodux78k.github.io/oiDual-oiio/index.html";
-          }, 1000);
-        });
-      };
-    </script>
-  
-<script src="https://unpkg.com/framer-motion/dist/framer-motion.umd.js"></script>
-
-
-<!-- ============ TEXT BEAUTY & INTERACTION PATCH — V3 (aditivo) ============ -->
-
-
-
-<!-- ============ /TEXT BEAUTY & INTERACTION PATCH — V3 ============ -->
-
-<!-- -------------------------
-   END BEAUTY.v3
-   ------------------------- -->
-
-
-
-<!-- -------------------------
-   TRINITY (livro_vivo_trinity_override.js) injetado
-   ------------------------- -->
-<!-- Begin: livro_vivo_trinity_override.js -->
-
-<!-- End: livro_vivo_trinity_override.js -->
-<!-- -------------------------
-   END TRINITY
-   ------------------------- -->
-
-
-<!-- -------------------------
-   OVERRIDE LOADER: garante execução pós-render
-   ------------------------- -->
-
-<!-- -------------------------
-   END OVERRIDE LOADER
-   ------------------------- -->
-
-<!-- <script type="module" src="https://kodux78k.github.io/oiDual-KxT-di_oi/js/main.js"></script> ============================
-   FIM DO PATCH
-   ============================ -->
-
-  
-
-<script src="https://kodux78k.github.io/oiDual-0i/0RB-0S17.js"></script>
-
-
-<script src="https://kodux78k.github.io/oiDual-KxT-di_oi/js/modules/bgPanel.js"></script>
-
-<!-- 1 -->
-<script src="https://kodux78k.github.io/oiDual-KxT-di_oi/js/modules/inline-1.js"></script>
-
-<!-- 2 -->
-<script src="https://kodux78k.github.io/oiDual-KxT-di_oi/js/modules/inline-2.js"></script>
-
-<!-- 3 -->
-<script src="https://kodux78k.github.io/oiDual-KxT-di_oi/js/modules/inline-3.js"></script>
-
-<!-- 4 -->
-<script src="https://kodux78k.github.io/oiDual-KxT-di_oi/js/modules/inline-4.js"></script>
-
-
-
-
-
-<iframe src="https://kodux78k.github.io/oiDual-H0/DH0-10.html" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" allow="fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" loading="lazy" style="
-
-    background: rgba(0,0,0,0);
-    width: 100%;
-    height: 100%;
-  min-height:100vh;
-    z-index: 0;
-    border: 0;
-    border-radius: 4px;
-  ">
-</iframe>
-
-<style> body,html {min-height:100vh; height:100%;overflow:auto;} 
-</style>
-
-<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script><script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script><script src="https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/build/highlight.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script><script>hljs.highlightAll();</script><script src="https://kodux78k.github.io/oiDual-0i/0RB-0S17.js"></script><script src="https://kodux78k.github.io/oiDual-KxT-di_oi/js/modules/bgPanel.js"></script><script src="https://kodux78k.github.io/oiDual-KxT-di_oi/js/modules/inline-1.js"></script><script src="https://kodux78k.github.io/oiDual-KxT-di_oi/js/modules/inline-2.js"></script><script src="https://kodux78k.github.io/oiDual-KxT-di_oi/js/modules/inline-3.js"></script><script src="https://kodux78k.github.io/oiDual-KxT-di_oi/js/modules/inline-4.js"></script></body></html>
+</body></html>
